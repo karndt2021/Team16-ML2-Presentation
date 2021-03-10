@@ -1,0 +1,88 @@
+---
+title: "9.6.2 Support Vector Machine"
+author: "Team 16"
+date: "3/7/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+```
+
+## Lab 9.6.2 Support Vector Machine
+
+This lab will fit a support vector machine using a nonlinear kernel. This is done simply by changing the parameter 'kernel' within the svm() function. If we want a polynomial kernel, we use kernel='polynomial' and specify the degree for the degree of polynomial. If we want radial, we use kernel='radial' and specify gamma.
+
+To show this in R, we will create a random dataset with a non-linear boundary.
+
+```{r}
+set.seed(1)
+x<- matrix(rnorm(200*2), ncol=2)
+x[1:100,]<- x[1:100,]+2
+x[101:150,]<- x[101:150,]-2
+y<- c(rep(1,150), rep(2,50))
+dat<- data.frame(x=x, y=as.factor(y))
+```
+
+Next, we plot the data to ensure we have nonlinear class boundaries.
+
+```{r}
+plot(x, col=y)
+```
+
+Now we split the data into training and testing groups using R's sample function to get row indices. Then, we can create our svm() model using the training data. We will set the kernel to radial with a gamma of one. We choose radial because the graph above shows that the data cannot be split using a polynomial. If the split appears circular, a radial kernel is the optimal choice. Cost allows us to specify the cost of a violation to the margin.
+
+```{r, message=FALSE}
+train<- sample(200,100)
+library(e1071) # Library that contains svm function
+svmfit<- svm(y~., data=dat[train,], kernel='radial', gamma=1, cost=1)
+plot(svmfit, dat[train,])
+```
+
+This plot shows that our model has a nonlinear and radial decision boundary. We can use the summary() function to get more information about our model.
+
+```{r}
+summary(svmfit)
+```
+
+By observing the plot of our model, we can also see that we misclassified some of the training samples. We could reduce the number of errors by increasing cost, but this could result in overfitting
+
+```{r}
+svmfit<- svm(y~., data=dat[train,], kernel='radial', gamma=1, cost=1e5)
+plot(svmfit, dat[train,])
+```
+
+To find the best value for gamma and cost, we use cross validation. In R, we do this using the tune() function.
+
+```{r}
+set.seed(1)
+tune.out<- tune(svm, y~., data=dat[train,], kernel='radial', 
+                ranges=list(cost=c(0.1,1,10,100,1000),
+                            gamma=c(0.5,1,2,3,4)))
+summary(tune.out)
+```
+
+According to the cross validation results, our best cost is 1 and best gamma is 0.5. Gammas of 2 and 4 will also produce the same results. Finally, we can use the model to predict on our test data using predict(). Since our train variable are indices, we get our test data by using -train as an index set.
+
+We can use the caret package to get more info on our predictions.
+
+```{r}
+conf.mat<- table(true=dat[-train,'y'], pred=predict(tune.out$best.model, newdata=dat[-train,]))
+library(caret)
+confusionMatrix(conf.mat)
+```
+
+Our accuracy on the test set is 88%.
+
+
+
+
+
+
+
+
+
