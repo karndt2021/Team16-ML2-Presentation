@@ -17,7 +17,7 @@ its own introduction below
 ```{r}
 rm(list=ls())
 ```
-That package ill be the e1071 library, which contains statistical learning 
+That package will be the e1071 library, which contains statistical learning 
 methods.  We'll be using the svm() function today. This utilizes a cost 
 argument that when small allows for less support vectors when large, and more 
 support vectors when small.  This example
@@ -49,10 +49,10 @@ plot our model.
 plot(svmfit, dat)
 ```
 Ploting svm functions requires both the output of the function and the original
-data.  Since we set the kernal to linear the decision boundry between the two 
+data.  Since we set the kernel to linear the decision boundary between the two 
 classes will be linear. The cream color is set to the -1 class the maroon to the
 +1 class.  The X icon is used for support vectors, of which there are seven if 
-you were to count them.  The function below indentifes them.
+you were to count them.  The function below identifies them.
 
 ```{r}
 svmfit$index
