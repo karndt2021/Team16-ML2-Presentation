@@ -1,0 +1,164 @@
+---
+title: 'Lab 9.6.1'
+author: "Nicholas Ohlheiser"
+date: "3/6/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Lab 9.6.1: Support Vector Classifier
+
+Clear console, we'll only be using one package (surprisingly) and it will have
+its own introduction below
+
+```{r}
+rm(list=ls())
+```
+That package ill be the e1071 library, which contains statistical learning 
+methods.  We'll be using the svm() function today. This utilizes a cost 
+argument that when small allows for less support vectors when large, and more 
+support vectors when small.  This example
+will be utilizing the function in two dimensions so we can plot the decision
+boundary.  The first step is generating the observations below
+
+```{r}
+set.seed(1)
+x=matrix(rnorm(20*2),ncol=2)
+y=c(rep(-1,10),rep(1,10))
+x[y==1,]=x[y==1,]+1
+plot(x,col=(3-y))
+```
+The next step is to fit the support vector classifier.  We have to code the 
+response as a factor variable for this to work as you see below with "dat"
+Then we call the e1071 library and build the model utilzing the svm() function,
+remembering to set kernal as "linear".
+
+```{r}
+dat=data.frame(x=x, y=as.factor(y))
+library(e1071)
+svmfit=svm(y~., data=dat, kernel="linear", cost=10, scale=FALSE)
+
+```
+The purpose of scale=FALSE is to prevent scaling of each feature.  Next we will
+plot our model.
+
+```{r}
+plot(svmfit, dat)
+```
+Ploting svm functions requires both the output of the function and the original
+data.  Since we set the kernal to linear the decision boundry between the two 
+classes will be linear. The cream color is set to the -1 class the maroon to the
++1 class.  The X icon is used for support vectors, of which there are seven if 
+you were to count them.  The function below indentifes them.
+
+```{r}
+svmfit$index
+```
+The summary function can be used on the model to provide additional information
+
+```{r}
+summary(svmfit)
+```
+The kernel input is identified and the number of support vectors is counted for 
+us in addition to other items.  The next example will try 0.1 for cost rather 
+than 10.
+
+
+```{r}
+svmfit=svm(y~., data=dat, kernel="linear", cost=0.1, scale=FALSE)
+plot(svmfit, dat)
+svmfit$index
+```
+As foreshadowed earlier, the smaller cost parameter leads to more support 
+vectors.  The e1071 library includes a built-in tune() function allowing for
+cross tuning.  It defaults to 10-fold but can be adjusted.  A tuning example is 
+below.  Cost becomes a vector of values.
+
+
+```{r}
+set.seed(1)
+tune.out=tune(svm,y~.,data=dat, kernel="linear", ranges=list(cost=c(0.001,0.01,0.1,1,5,10,100)))
+```
+
+The summary command lets us take a look at the results.
+
+```{r}
+summary(tune.out)
+```
+0.1 is the winning cost value since it has the lowest error rate at 0.05.  
+However, the function saves us the trouble of needing to find that with the 
+following command:
+
+```{r}
+bestmod=tune.out$best.model
+summary(bestmod)
+
+```
+Now that we have our best model, we're going to want to try some predictions to
+see how the model performs using test data.  Lets set up the test data first.
+
+```{r}
+xtest = matrix(rnorm(20*2), ncol=2)
+ytest = sample(c(-1,1), 20, rep=TRUE)
+xtest[ytest==1,] = xtest[ytest==1,]+1
+testdat = data.frame(x=xtest, y=as.factor(ytest))
+```
+Now that the test data is ready, we can use the predict function using our best
+model.
+
+```{r}
+ypred=predict(bestmod,testdat)
+table(predict=ypred, truth=testdat$y)
+
+```
+
+19 test observations are correctly classified for the test data.  Now lets try 
+cost at .01 to verify the results of the cross validation and see that its a 
+weaker model
+
+```{r}
+svmfit=svm(y~.,data=dat,kernel="linear",cost=.01, scale=FALSE)
+ypred=predict(svmfit,testdat)
+table(predict=ypred, truth=testdat$y)
+
+```
+For the next example, we're going to try a case where the two classes are 
+linearly separable.  There will be a separating hyperplane this time.
+
+
+
+```{r}
+x[y==1,]=x[y==1,]+0.5
+plot(x, col=(y+5)/2, pch=19)
+
+```
+We can see that the values are linearly separable on the plot.  Lets now fit the
+support vector classifier and produce a plot of the hyperplane.  Cost will be 
+set high to avloid misclassifications
+
+```{r}
+dat=data.frame(x=x,y=as.factor(y))
+svmfit=svm(y~.,data=dat, kernel="linear",cost=1e5)
+summary(svmfit)
+plot(svmfit, dat)
+
+```
+As expected due to the high cost, no training errors occurred.  But this is 
+an overfit model and the key indicator is that some values that are circles 
+(meaning they aren't support vectors) are close to the boundary line.  Cost
+will be reduced in the next model
+
+```{r}
+svmfit=svm(y~.,data=dat, kernel="linear",cost=1)
+summary(svmfit)
+plot(svmfit, dat)
+```
+Well we aren't perfect anymore in training.  However there are now seven support 
+vectors so the resulting model will have better results using test data.
+
+
+
+
